@@ -454,6 +454,7 @@ class GoogleCalendarManager {
   }
 
   async _apiGet(path, accountEmail = null) {
+    throw new Error("[GoogleCalendarManager] API calls disabled in local-only mode");
     const accessToken = await this.oauth.getValidAccessToken(accountEmail);
     const urlString = path.startsWith("http") ? path : `${CALENDAR_API_BASE}${path}`;
     const url = new URL(urlString);

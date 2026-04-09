@@ -280,6 +280,8 @@ class AssemblyAiStreaming {
   }
 
   async connect(options = {}) {
+    debugLogger.warn("[AssemblyAiStreaming] Cloud streaming disabled in local-only mode");
+    return;
     const { token } = options;
     if (!token) {
       throw new Error("Streaming token is required");

@@ -538,6 +538,8 @@ class DeepgramStreaming {
   }
 
   async connect(options = {}) {
+    debugLogger.warn("[DeepgramStreaming] Cloud streaming disabled in local-only mode");
+    return;
     const { token, replayBuffer, forceNew } = options;
     if (!token) {
       throw new Error("Streaming token is required");

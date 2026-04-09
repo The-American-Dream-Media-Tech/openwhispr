@@ -52,6 +52,8 @@ class GoogleCalendarOAuth {
   }
 
   startOAuthFlow() {
+    return Promise.reject(new Error("[GoogleCalendarOAuth] OAuth disabled in local-only mode"));
+    // Original implementation below is blocked:
     return new Promise((resolve, reject) => {
       const codeVerifier = crypto.randomBytes(32).toString("base64url").slice(0, 43);
       const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
@@ -177,14 +179,7 @@ class GoogleCalendarOAuth {
   }
 
   async refreshAccessToken(refreshToken) {
-    const body = new URLSearchParams({
-      client_id: this.getClientId(),
-      client_secret: this.getClientSecret(),
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }).toString();
-
-    return this._httpsPost(GOOGLE_TOKEN_URL, body);
+    throw new Error("[GoogleCalendarOAuth] Token refresh disabled in local-only mode");
   }
 
   async getValidAccessToken(accountEmail = null) {

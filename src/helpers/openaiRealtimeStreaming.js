@@ -33,6 +33,10 @@ class OpenAIRealtimeStreaming {
   }
 
   async connect(options = {}) {
+    debugLogger.warn("[OpenAIRealtime] Cloud streaming disabled in local-only mode");
+    return;
+
+    // Original code (disabled)
     const { apiKey, model, preconfigured } = options;
     if (!apiKey) throw new Error("OpenAI API key is required");
 

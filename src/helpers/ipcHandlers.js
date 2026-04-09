@@ -2516,6 +2516,8 @@ class IPCHandlers {
     };
 
     ipcMain.handle("cloud-transcribe", async (event, audioBuffer, opts = {}) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud transcription disabled in local-only mode" };
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -2586,6 +2588,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("meeting-transcribe-chain", async (event, blobUrl, opts = {}) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud meeting transcription chain disabled in local-only mode" };
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -2797,6 +2801,8 @@ class IPCHandlers {
         return streams === 2 ? [apiKey, apiKey] : apiKey;
       }
 
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Cloud OpenAI realtime token disabled in local-only mode");
       const apiUrl = getApiUrl();
       if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
 
@@ -3302,6 +3308,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("cloud-reason", async (event, text, opts = {}) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud reasoning disabled in local-only mode" };
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3385,6 +3393,9 @@ class IPCHandlers {
     });
 
     ipcMain.on("cloud-agent-stream-start", async (event, messages, opts = {}) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      event.sender.send("cloud-agent-stream-error", { error: "Cloud agent streaming disabled in local-only mode" });
+      return;
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3473,6 +3484,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("agent-web-search", async (event, query, numResults = 5) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud web search disabled in local-only mode" };
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3513,6 +3526,8 @@ class IPCHandlers {
     ipcMain.handle(
       "cloud-streaming-usage",
       async (event, text, audioDurationSeconds, opts = {}) => {
+        // LOCAL-ONLY: cloud endpoint disabled
+        return { success: false, error: "Cloud streaming usage disabled in local-only mode" };
         try {
           const apiUrl = getApiUrl();
           if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3561,6 +3576,8 @@ class IPCHandlers {
     );
 
     ipcMain.handle("cloud-usage", async (event) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud usage tracking disabled in local-only mode" };
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3588,6 +3605,8 @@ class IPCHandlers {
     });
 
     const fetchStripeUrl = async (event, endpoint, errorPrefix, body) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Cloud Stripe/billing disabled in local-only mode");
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3629,6 +3648,8 @@ class IPCHandlers {
     );
 
     ipcMain.handle("cloud-switch-plan", async (event, opts) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud plan switching disabled in local-only mode" };
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3658,6 +3679,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("cloud-preview-switch", async (event, opts) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud plan preview disabled in local-only mode" };
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3687,6 +3710,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("get-stt-config", async (event) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return null;
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
@@ -3714,6 +3739,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("transcribe-audio-file-cloud", async (event, filePath) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      return { success: false, error: "Cloud file transcription disabled in local-only mode" };
       const fs = require("fs");
       const os = require("os");
       const { splitAudioFile } = require("./ffmpegUtils");
@@ -3946,6 +3973,8 @@ class IPCHandlers {
     );
 
     ipcMain.handle("get-referral-stats", async (event) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Referral stats disabled in local-only mode");
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) {
@@ -3979,6 +4008,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("send-referral-invite", async (event, email) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Referral invites disabled in local-only mode");
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) {
@@ -4017,6 +4048,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("get-referral-invites", async (event) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Referral invites disabled in local-only mode");
       try {
         const apiUrl = getApiUrl();
         if (!apiUrl) {
@@ -4186,6 +4219,8 @@ class IPCHandlers {
     });
 
     const fetchStreamingToken = async (event) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Cloud AssemblyAI streaming token disabled in local-only mode");
       const apiUrl = getApiUrl();
       if (!apiUrl) {
         throw new Error("OpenWhispr API URL not configured");
@@ -4388,6 +4423,8 @@ class IPCHandlers {
     let deepgramTokenWindowId = null;
 
     const fetchDeepgramStreamingTokenFromWindow = async (windowId) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Cloud Deepgram streaming token disabled in local-only mode");
       const apiUrl = getApiUrl();
       if (!apiUrl) throw new Error("OpenWhispr API URL not configured");
 
@@ -4417,6 +4454,8 @@ class IPCHandlers {
     };
 
     const fetchDeepgramStreamingToken = async (event) => {
+      // LOCAL-ONLY: cloud endpoint disabled
+      throw new Error("Cloud Deepgram streaming token disabled in local-only mode");
       const apiUrl = getApiUrl();
       if (!apiUrl) {
         throw new Error("OpenWhispr API URL not configured");
