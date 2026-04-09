@@ -442,7 +442,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const pipelineStart = performance.now();
 
     // Skip transcription if recording was silence
-    const SILENCE_THRESHOLD = 0.002;
+    // Raised from 0.002 to 0.005 for faster cutoff on silence-only recordings
+    const SILENCE_THRESHOLD = 0.005;
     if (this._peakRms != null && this._peakRms < SILENCE_THRESHOLD) {
       logger.info(
         "Silence detected, skipping transcription",

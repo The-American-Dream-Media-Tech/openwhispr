@@ -105,6 +105,7 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
+    "uiohook-napi": "^1.5.4",
     "@ai-sdk/anthropic": "^3.0.58",
     "@ai-sdk/google": "^3.0.43",
     "@ai-sdk/groq": "^3.0.29",

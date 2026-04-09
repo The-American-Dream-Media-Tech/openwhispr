@@ -43,6 +43,9 @@ const SPECIAL_KEYS = new Set(
   [
     "GLOBE",
     "Fn",
+    "MiddleMouse",
+    "Mouse4",
+    "Mouse5",
     "Esc",
     "Tab",
     "Space",
@@ -525,6 +528,12 @@ export function validateHotkey(
         errorCode: "INVALID_GLOBE",
       };
     }
+    return { valid: true };
+  }
+
+  // Mouse button hotkeys are valid on all platforms
+  const MOUSE_BUTTON_HOTKEYS = new Set(["MiddleMouse", "Mouse4", "Mouse5"]);
+  if (MOUSE_BUTTON_HOTKEYS.has(hotkey)) {
     return { valid: true };
   }
 

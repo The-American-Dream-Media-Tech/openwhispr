@@ -3,6 +3,7 @@ const debugLogger = require("./debugLogger");
 const GnomeShortcutManager = require("./gnomeShortcut");
 const HyprlandShortcutManager = require("./hyprlandShortcut");
 const KDEShortcutManager = require("./kdeShortcut");
+const MouseButtonManager = require("./mouseButtonManager");
 const { i18nMain } = require("./i18nMain");
 
 // Delay to ensure localStorage is accessible after window load
@@ -42,6 +43,10 @@ function isGlobeLikeHotkey(hotkey) {
   return hotkey === "GLOBE" || hotkey === "Fn";
 }
 
+function isMouseButtonHotkey(hotkey) {
+  return MouseButtonManager.isMouseButtonHotkey(hotkey);
+}
+
 function normalizeToAccelerator(hotkey) {
   let accelerator = hotkey.startsWith("Fn+") ? hotkey.slice(3) : hotkey;
   accelerator = accelerator
@@ -65,6 +70,7 @@ class HotkeyManager {
     this.slots.set("dictation", { hotkey: defaultDictation, callback: null, accelerator: null });
     this.isInitialized = false;
     this.isListeningMode = false;
+    this.mouseButtonManager = new MouseButtonManager();
     this.gnomeManager = null;
     this.useGnome = false;
     this.hyprlandManager = null;
@@ -255,6 +261,12 @@ class HotkeyManager {
     }
 
     const hk = slot.hotkey;
+    if (isMouseButtonHotkey(hk)) {
+      this.mouseButtonManager.stop();
+      slot.hotkey = null;
+      slot.accelerator = null;
+      return;
+    }
     if (!isGlobeLikeHotkey(hk) && !isRightSideModifier(hk) && !isModifierOnlyHotkey(hk)) {
       const accel = normalizeToAccelerator(hk);
       try {
@@ -340,6 +352,18 @@ class HotkeyManager {
         slot.accelerator = null;
         debugLogger.log(
           `[HotkeyManager] Right-side modifier "${hotkey}" set - using native listener`
+        );
+        return { success: true, hotkey };
+      }
+
+      if (isMouseButtonHotkey(hotkey)) {
+        this.mouseButtonManager.start(hotkey);
+        this.mouseButtonManager.removeAllListeners("trigger");
+        this.mouseButtonManager.on("trigger", callback);
+        slot.hotkey = hotkey;
+        slot.accelerator = null;
+        debugLogger.log(
+          `[HotkeyManager] Mouse button "${hotkey}" set - using MouseButtonManager`
         );
         return { success: true, hotkey };
       }
@@ -434,7 +458,8 @@ class HotkeyManager {
       !previousHotkey ||
       isGlobeLikeHotkey(previousHotkey) ||
       isRightSideModifier(previousHotkey) ||
-      isModifierOnlyHotkey(previousHotkey)
+      isModifierOnlyHotkey(previousHotkey) ||
+      isMouseButtonHotkey(previousHotkey)
     ) {
       return;
     }
@@ -972,6 +997,7 @@ class HotkeyManager {
       this.hyprlandManager = null;
       this.useHyprland = false;
     }
+    this.mouseButtonManager.stop();
     for (const slotName of this.slots.keys()) {
       const slot = this.slots.get(slotName);
       if (slot) {
@@ -1007,3 +1033,4 @@ module.exports = HotkeyManager;
 module.exports.isGlobeLikeHotkey = isGlobeLikeHotkey;
 module.exports.isModifierOnlyHotkey = isModifierOnlyHotkey;
 module.exports.isRightSideModifier = isRightSideModifier;
+module.exports.isMouseButtonHotkey = isMouseButtonHotkey;

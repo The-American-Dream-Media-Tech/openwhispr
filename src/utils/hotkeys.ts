@@ -64,6 +64,16 @@ export function formatHotkeyLabelForPlatform(hotkey: string, platform: Platform)
     return "Globe/Fn";
   }
 
+  // Mouse button display labels
+  const mouseButtonLabels: Record<string, string> = {
+    MiddleMouse: "Middle Mouse Button",
+    Mouse4: "Mouse Button 4",
+    Mouse5: "Mouse Button 5",
+  };
+  if (mouseButtonLabels[hotkey]) {
+    return mouseButtonLabels[hotkey];
+  }
+
   // Right-side single modifiers
   const rightSideMap: Record<string, string> = {
     RightOption: platform === "darwin" ? "Right Option" : "Right Alt",

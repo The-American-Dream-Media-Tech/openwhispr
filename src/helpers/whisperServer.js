@@ -249,6 +249,11 @@ class WhisperServerManager extends EventEmitter {
       debugLogger.warn("FFmpeg not found - whisper-server will only accept 16kHz mono WAV");
     }
 
+    // Default to 75% of CPU cores (capped at 4) for optimal transcription speed
+    if (!options.threads) {
+      const os = require("os");
+      options.threads = Math.max(1, Math.min(4, Math.floor(os.cpus().length * 0.75)));
+    }
     if (options.threads) args.push("--threads", String(options.threads));
     // whisper.cpp defaults to English when --language is omitted;
     // explicitly pass "auto" to enable language auto-detection
