@@ -295,28 +295,31 @@ class HotkeyManager {
     debugLogger.log(`[HotkeyManager] Platform: ${process.platform}, Arch: ${process.arch}`);
     debugLogger.log(`[HotkeyManager] Current hotkey for slot: "${slot.hotkey}"`);
 
-    const checkAccelerator = normalizeToAccelerator(hotkey);
     if (
       hotkey === slot.hotkey &&
       !isGlobeLikeHotkey(hotkey) &&
       !isRightSideModifier(hotkey) &&
       !isModifierOnlyHotkey(hotkey) &&
-      globalShortcut.isRegistered(checkAccelerator)
+      !isMouseButtonHotkey(hotkey)
     ) {
-      debugLogger.log(
-        `[HotkeyManager] Hotkey "${hotkey}" is already registered for slot "${slotName}", no change needed`
-      );
-      return { success: true, hotkey };
+      const checkAccelerator = normalizeToAccelerator(hotkey);
+      if (globalShortcut.isRegistered(checkAccelerator)) {
+        debugLogger.log(
+          `[HotkeyManager] Hotkey "${hotkey}" is already registered for slot "${slotName}", no change needed`
+        );
+        return { success: true, hotkey };
+      }
     }
 
     const previousHotkey = slot.hotkey;
 
-    // Unregister the previous hotkey for this slot (skip native-listener-only hotkeys)
+    // Unregister the previous hotkey for this slot (skip native-listener-only and mouse button hotkeys)
     if (
       previousHotkey &&
       !isGlobeLikeHotkey(previousHotkey) &&
       !isRightSideModifier(previousHotkey) &&
-      !isModifierOnlyHotkey(previousHotkey)
+      !isModifierOnlyHotkey(previousHotkey) &&
+      !isMouseButtonHotkey(previousHotkey)
     ) {
       const prevAccelerator = normalizeToAccelerator(previousHotkey);
       try {
@@ -327,6 +330,10 @@ class HotkeyManager {
           `[HotkeyManager] Skipping previous hotkey unregister for non-accelerator "${prevAccelerator}": ${error.message}`
         );
       }
+    }
+    // If switching away from a mouse button hotkey, stop the mouse button manager
+    if (previousHotkey && isMouseButtonHotkey(previousHotkey) && previousHotkey !== hotkey) {
+      this.mouseButtonManager.stop();
     }
 
     try {
@@ -362,6 +369,7 @@ class HotkeyManager {
         this.mouseButtonManager.on("trigger", callback);
         slot.hotkey = hotkey;
         slot.accelerator = null;
+        this.currentHotkey = hotkey;
         debugLogger.log(
           `[HotkeyManager] Mouse button "${hotkey}" set - using MouseButtonManager`
         );
@@ -932,6 +940,7 @@ class HotkeyManager {
 
       const result = this.setupShortcuts(hotkey, callback);
       if (result.success) {
+        this.currentHotkey = hotkey;
         const saved = await this.saveHotkeyToRenderer(hotkey);
         if (!saved) {
           debugLogger.warn(

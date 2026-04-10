@@ -1,0 +1,331 @@
+From e392138fd42af925730d695e35feb231862c6dce Mon Sep 17 00:00:00 2001
+From: Jordan <jordan@adtvmedia.com>
+Date: Thu, 9 Apr 2026 16:07:34 -0500
+Subject: [PATCH] feat: add middle mouse button trigger, improve STT speed
+
+- Add MouseButtonManager using uiohook-napi for global mouse button
+  detection (MiddleMouse, Mouse4, Mouse5)
+- Wire mouse button support into HotkeyManager, validator, and display
+- Default whisper-server thread count to 75% of CPU cores (capped at 4)
+- Raise silence detection threshold from 0.002 to 0.005 for faster cutoff
+- Change default Whisper model from 'base' to 'tiny' for faster STT
+- Add uiohook-napi dependency to package.json
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+---
+ package.json                      |   1 +
+ src/helpers/audioManager.js       |   3 +-
+ src/helpers/hotkeyManager.js      |  29 +++++++-
+ src/helpers/mouseButtonManager.js | 107 ++++++++++++++++++++++++++++++
+ src/helpers/whisperServer.js      |   5 ++
+ src/stores/settingsStore.ts       |   2 +-
+ src/utils/hotkeyValidator.ts      |   9 +++
+ src/utils/hotkeys.ts              |  10 +++
+ 8 files changed, 163 insertions(+), 3 deletions(-)
+ create mode 100644 src/helpers/mouseButtonManager.js
+
+diff --git a/package.json b/package.json
+index 76f9d59..74fe9b0 100644
+--- a/package.json
++++ b/package.json
+@@ -105,6 +105,7 @@
+     "vite": "^6.3.5"
+   },
+   "dependencies": {
++    "uiohook-napi": "^1.5.4",
+     "@ai-sdk/anthropic": "^3.0.58",
+     "@ai-sdk/google": "^3.0.43",
+     "@ai-sdk/groq": "^3.0.29",
+diff --git a/src/helpers/audioManager.js b/src/helpers/audioManager.js
+index 7bc141f..ae6d01b 100644
+--- a/src/helpers/audioManager.js
++++ b/src/helpers/audioManager.js
+@@ -442,7 +442,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
+     const pipelineStart = performance.now();
+ 
+     // Skip transcription if recording was silence
+-    const SILENCE_THRESHOLD = 0.002;
++    // Raised from 0.002 to 0.005 for faster cutoff on silence-only recordings
++    const SILENCE_THRESHOLD = 0.005;
+     if (this._peakRms != null && this._peakRms < SILENCE_THRESHOLD) {
+       logger.info(
+         "Silence detected, skipping transcription",
+diff --git a/src/helpers/hotkeyManager.js b/src/helpers/hotkeyManager.js
+index a2a8119..936c4cc 100644
+--- a/src/helpers/hotkeyManager.js
++++ b/src/helpers/hotkeyManager.js
+@@ -3,6 +3,7 @@ const debugLogger = require("./debugLogger");
+ const GnomeShortcutManager = require("./gnomeShortcut");
+ const HyprlandShortcutManager = require("./hyprlandShortcut");
+ const KDEShortcutManager = require("./kdeShortcut");
++const MouseButtonManager = require("./mouseButtonManager");
+ const { i18nMain } = require("./i18nMain");
+ 
+ // Delay to ensure localStorage is accessible after window load
+@@ -42,6 +43,10 @@ function isGlobeLikeHotkey(hotkey) {
+   return hotkey === "GLOBE" || hotkey === "Fn";
+ }
+ 
++function isMouseButtonHotkey(hotkey) {
++  return MouseButtonManager.isMouseButtonHotkey(hotkey);
++}
++
+ function normalizeToAccelerator(hotkey) {
+   let accelerator = hotkey.startsWith("Fn+") ? hotkey.slice(3) : hotkey;
+   accelerator = accelerator
+@@ -65,6 +70,7 @@ class HotkeyManager {
+     this.slots.set("dictation", { hotkey: defaultDictation, callback: null, accelerator: null });
+     this.isInitialized = false;
+     this.isListeningMode = false;
++    this.mouseButtonManager = new MouseButtonManager();
+     this.gnomeManager = null;
+     this.useGnome = false;
+     this.hyprlandManager = null;
+@@ -255,6 +261,12 @@ class HotkeyManager {
+     }
+ 
+     const hk = slot.hotkey;
++    if (isMouseButtonHotkey(hk)) {
++      this.mouseButtonManager.stop();
++      slot.hotkey = null;
++      slot.accelerator = null;
++      return;
++    }
+     if (!isGlobeLikeHotkey(hk) && !isRightSideModifier(hk) && !isModifierOnlyHotkey(hk)) {
+       const accel = normalizeToAccelerator(hk);
+       try {
+@@ -344,6 +356,18 @@ class HotkeyManager {
+         return { success: true, hotkey };
+       }
+ 
++      if (isMouseButtonHotkey(hotkey)) {
++        this.mouseButtonManager.start(hotkey);
++        this.mouseButtonManager.removeAllListeners("trigger");
++        this.mouseButtonManager.on("trigger", callback);
++        slot.hotkey = hotkey;
++        slot.accelerator = null;
++        debugLogger.log(
++          `[HotkeyManager] Mouse button "${hotkey}" set - using MouseButtonManager`
++        );
++        return { success: true, hotkey };
++      }
++
+       if (isModifierOnlyHotkey(hotkey) && process.platform === "win32") {
+         slot.hotkey = hotkey;
+         slot.accelerator = null;
+@@ -434,7 +458,8 @@ class HotkeyManager {
+       !previousHotkey ||
+       isGlobeLikeHotkey(previousHotkey) ||
+       isRightSideModifier(previousHotkey) ||
+-      isModifierOnlyHotkey(previousHotkey)
++      isModifierOnlyHotkey(previousHotkey) ||
++      isMouseButtonHotkey(previousHotkey)
+     ) {
+       return;
+     }
+@@ -972,6 +997,7 @@ class HotkeyManager {
+       this.hyprlandManager = null;
+       this.useHyprland = false;
+     }
++    this.mouseButtonManager.stop();
+     for (const slotName of this.slots.keys()) {
+       const slot = this.slots.get(slotName);
+       if (slot) {
+@@ -1007,3 +1033,4 @@ module.exports = HotkeyManager;
+ module.exports.isGlobeLikeHotkey = isGlobeLikeHotkey;
+ module.exports.isModifierOnlyHotkey = isModifierOnlyHotkey;
+ module.exports.isRightSideModifier = isRightSideModifier;
++module.exports.isMouseButtonHotkey = isMouseButtonHotkey;
+diff --git a/src/helpers/mouseButtonManager.js b/src/helpers/mouseButtonManager.js
+new file mode 100644
+index 0000000..1de9619
+--- /dev/null
++++ b/src/helpers/mouseButtonManager.js
+@@ -0,0 +1,107 @@
++/**
++ * MouseButtonManager - Handles global mouse button detection for hotkey triggers
++ *
++ * Uses uiohook-napi to detect when specific mouse buttons are
++ * pressed and released, enabling mouse-button-based hotkey triggers
++ * (e.g., middle mouse button for Push-to-Talk).
++ */
++
++const { uIOhook } = require("uiohook-napi");
++const EventEmitter = require("events");
++const debugLogger = require("./debugLogger");
++
++// Mouse button codes from uiohook-napi
++const MOUSE_BUTTONS = {
++  MiddleMouse: 2, // middle click
++  Mouse4: 4, // back/side button
++  Mouse5: 5, // forward/side button
++};
++
++class MouseButtonManager extends EventEmitter {
++  constructor() {
++    super();
++    this.isRunning = false;
++    this.targetButton = null;
++    this.currentHotkey = null;
++    this._mouseDownHandler = null;
++    this._mouseUpHandler = null;
++  }
++
++  /**
++   * Check if a hotkey string refers to a mouse button
++   * @param {string} hotkey
++   * @returns {boolean}
++   */
++  static isMouseButtonHotkey(hotkey) {
++    return hotkey in MOUSE_BUTTONS;
++  }
++
++  /**
++   * Start listening for the specified mouse button
++   * @param {string} hotkey - "MiddleMouse", "Mouse4", or "Mouse5"
++   */
++  start(hotkey) {
++    if (!MouseButtonManager.isMouseButtonHotkey(hotkey)) {
++      debugLogger.warn("[MouseButtonManager] Unknown mouse button hotkey:", hotkey);
++      return;
++    }
++
++    // If already running with the same button, do nothing
++    if (this.isRunning && this.currentHotkey === hotkey) {
++      return;
++    }
++
++    this.stop();
++
++    this.targetButton = MOUSE_BUTTONS[hotkey];
++    this.currentHotkey = hotkey;
++
++    this._mouseDownHandler = (e) => {
++      if (e.button === this.targetButton) {
++        debugLogger.debug("[MouseButtonManager] Mouse button DOWN", { button: hotkey });
++        this.emit("key-down", hotkey);
++        this.emit("trigger");
++      }
++    };
++
++    this._mouseUpHandler = (e) => {
++      if (e.button === this.targetButton) {
++        debugLogger.debug("[MouseButtonManager] Mouse button UP", { button: hotkey });
++        this.emit("key-up", hotkey);
++      }
++    };
++
++    uIOhook.on("mousedown", this._mouseDownHandler);
++    uIOhook.on("mouseup", this._mouseUpHandler);
++
++    // uIOhook.start() is idempotent if already running
++    if (!MouseButtonManager._uiohookStarted) {
++      uIOhook.start();
++      MouseButtonManager._uiohookStarted = true;
++    }
++
++    this.isRunning = true;
++    debugLogger.debug("[MouseButtonManager] Now listening for", hotkey);
++  }
++
++  /**
++   * Stop listening for mouse button events
++   */
++  stop() {
++    if (this._mouseDownHandler) {
++      uIOhook.off("mousedown", this._mouseDownHandler);
++      this._mouseDownHandler = null;
++    }
++    if (this._mouseUpHandler) {
++      uIOhook.off("mouseup", this._mouseUpHandler);
++      this._mouseUpHandler = null;
++    }
++    this.isRunning = false;
++    this.currentHotkey = null;
++    this.targetButton = null;
++  }
++}
++
++MouseButtonManager._uiohookStarted = false;
++
++module.exports = MouseButtonManager;
+diff --git a/src/helpers/whisperServer.js b/src/helpers/whisperServer.js
+index 5d46a5e..6cc6072 100644
+--- a/src/helpers/whisperServer.js
++++ b/src/helpers/whisperServer.js
+@@ -249,6 +249,11 @@ class WhisperServerManager extends EventEmitter {
+       debugLogger.warn("FFmpeg not found - whisper-server will only accept 16kHz mono WAV");
+     }
+ 
++    // Default to 75% of CPU cores (capped at 4) for optimal transcription speed
++    if (!options.threads) {
++      const os = require("os");
++      options.threads = Math.max(1, Math.min(4, Math.floor(os.cpus().length * 0.75)));
++    }
+     if (options.threads) args.push("--threads", String(options.threads));
+     // whisper.cpp defaults to English when --language is omitted;
+     // explicitly pass "auto" to enable language auto-detection
+diff --git a/src/stores/settingsStore.ts b/src/stores/settingsStore.ts
+index bf0b3b4..ed4c2ac 100644
+--- a/src/stores/settingsStore.ts
++++ b/src/stores/settingsStore.ts
+@@ -227,7 +227,7 @@ function invalidateApiKeyCaches(
+ export const useSettingsStore = create<SettingsState>()((set, get) => ({
+   uiLanguage: normalizeUiLanguage(isBrowser ? localStorage.getItem("uiLanguage") : null),
+   useLocalWhisper: readBoolean("useLocalWhisper", false),
+-  whisperModel: readString("whisperModel", "base"),
++  whisperModel: readString("whisperModel", "tiny"),
+   localTranscriptionProvider: (readString("localTranscriptionProvider", "whisper") === "nvidia"
+     ? "nvidia"
+     : "whisper") as LocalTranscriptionProvider,
+diff --git a/src/utils/hotkeyValidator.ts b/src/utils/hotkeyValidator.ts
+index 2385964..c2769de 100644
+--- a/src/utils/hotkeyValidator.ts
++++ b/src/utils/hotkeyValidator.ts
+@@ -43,6 +43,9 @@ const SPECIAL_KEYS = new Set(
+   [
+     "GLOBE",
+     "Fn",
++    "MiddleMouse",
++    "Mouse4",
++    "Mouse5",
+     "Esc",
+     "Tab",
+     "Space",
+@@ -528,6 +531,12 @@ export function validateHotkey(
+     return { valid: true };
+   }
+ 
++  // Mouse button hotkeys are valid on all platforms
++  const MOUSE_BUTTON_HOTKEYS = new Set(["MiddleMouse", "Mouse4", "Mouse5"]);
++  if (MOUSE_BUTTON_HOTKEYS.has(hotkey)) {
++    return { valid: true };
++  }
++
+   const parts = hotkey
+     .split("+")
+     .map((part) => part.trim())
+diff --git a/src/utils/hotkeys.ts b/src/utils/hotkeys.ts
+index 7b869ce..5d6cfd7 100644
+--- a/src/utils/hotkeys.ts
++++ b/src/utils/hotkeys.ts
+@@ -64,6 +64,16 @@ export function formatHotkeyLabelForPlatform(hotkey: string, platform: Platform)
+     return "Globe/Fn";
+   }
+ 
++  // Mouse button display labels
++  const mouseButtonLabels: Record<string, string> = {
++    MiddleMouse: "Middle Mouse Button",
++    Mouse4: "Mouse Button 4",
++    Mouse5: "Mouse Button 5",
++  };
++  if (mouseButtonLabels[hotkey]) {
++    return mouseButtonLabels[hotkey];
++  }
++
+   // Right-side single modifiers
+   const rightSideMap: Record<string, string> = {
+     RightOption: platform === "darwin" ? "Right Option" : "Right Alt",
+-- 
+2.34.1
+

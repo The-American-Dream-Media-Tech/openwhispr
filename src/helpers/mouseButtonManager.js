@@ -10,9 +10,11 @@ const { uIOhook } = require("uiohook-napi");
 const EventEmitter = require("events");
 const debugLogger = require("./debugLogger");
 
-// Mouse button codes from uiohook-napi
+// Mouse button codes from uiohook-napi (libuiohook numbering, NOT DOM numbering)
+// libuiohook: 1=left, 2=right, 3=middle, 4=extra1, 5=extra2
+// DOM:        0=left, 2=right, 1=middle, 3=extra1, 4=extra2
 const MOUSE_BUTTONS = {
-  MiddleMouse: 2, // middle click
+  MiddleMouse: 3, // middle click (libuiohook button 3)
   Mouse4: 4, // back/side button
   Mouse5: 5, // forward/side button
 };

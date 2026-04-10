@@ -204,6 +204,12 @@ class WindowManager {
       const activationMode = this.getActivationMode();
       const currentHotkey = this.hotkeyManager.getCurrentHotkey?.();
 
+      // Mouse buttons handle both tap and hold entirely via key-down/key-up events in main.js
+      const { isMouseButtonHotkey } = require("./hotkeyManager");
+      if (isMouseButtonHotkey(currentHotkey)) {
+        return;
+      }
+
       if (
         process.platform === "darwin" &&
         activationMode === "push" &&
@@ -215,7 +221,8 @@ class WindowManager {
         return;
       }
 
-      // Windows push mode: always defer to native listener (globalShortcut can't detect key-up)
+      // Windows push mode: push-to-talk is handled by key-down/key-up events
+      // (wired in main.js for windowsKeyManager).
       if (process.platform === "win32" && activationMode === "push") {
         return;
       }
@@ -369,7 +376,7 @@ class WindowManager {
       return;
     }
 
-    const MIN_HOLD_DURATION_MS = 150;
+    const MIN_HOLD_DURATION_MS = 75;
     const downTime = Date.now();
 
     this.showDictationPanel();

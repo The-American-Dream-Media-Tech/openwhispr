@@ -934,8 +934,11 @@ async function startApp() {
     const isRightSideMod = (hotkey) =>
       /^Right(Control|Ctrl|Alt|Option|Shift|Super|Win|Meta|Command|Cmd)$/i.test(hotkey);
 
+    const { isMouseButtonHotkey } = require("./src/helpers/hotkeyManager");
+
     const needsNativeListener = (hotkey, mode) => {
       if (!isValidHotkey(hotkey)) return false;
+      if (isMouseButtonHotkey(hotkey)) return false; // mouse buttons use mouseButtonManager, not native key listener
       if (mode === "push") return true;
       return isRightSideMod(hotkey) || isModifierOnlyHotkey(hotkey);
     };
@@ -984,6 +987,38 @@ async function startApp() {
 
     windowsKeyManager.on("ready", () => {
       debugLogger.debug("[Push-to-Talk] WindowsKeyManager is ready and listening");
+    });
+
+    // Mouse button hybrid behavior: quick tap toggles dictation, hold does push-to-talk.
+    // This works regardless of the activation mode setting.
+    const mouseButtonMgr = hotkeyManager.mouseButtonManager;
+    let mouseDownTime = 0;
+    let mousePushActive = false;
+    const MOUSE_HOLD_THRESHOLD_MS = 100;
+
+    mouseButtonMgr.on("key-down", (_hotkey) => {
+      if (!isLiveWindow(windowManager.mainWindow)) return;
+      mouseDownTime = Date.now();
+      mousePushActive = true;
+      // Start push-to-talk (shows panel immediately, begins recording after 150ms hold)
+      windowManager.startWindowsPushToTalk();
+    });
+
+    mouseButtonMgr.on("key-up", (_hotkey) => {
+      if (!isLiveWindow(windowManager.mainWindow)) return;
+      if (!mousePushActive) return;
+
+      const holdDuration = Date.now() - mouseDownTime;
+      mousePushActive = false;
+
+      if (holdDuration < MOUSE_HOLD_THRESHOLD_MS) {
+        // Quick tap: cancel push-to-talk, toggle dictation instead
+        windowManager.resetWindowsPushState();
+        windowManager.sendToggleDictation();
+      } else {
+        // Long hold: stop push-to-talk recording
+        windowManager.handleWindowsPushKeyUp();
+      }
     });
 
     const startWindowsKeyListener = () => {

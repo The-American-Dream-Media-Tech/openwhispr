@@ -415,6 +415,43 @@ export function HotkeyInput({
     onBlur?.();
   }, [onBlur, clearFnHeld]);
 
+  // Mouse button capture: maps middle/side mouse buttons to hotkey strings
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (disabled || !isCapturing) return;
+
+      // button 1 = middle, 3 = Mouse4 (back), 4 = Mouse5 (forward)
+      // button 0 = left click (used for focusing, ignore)
+      // button 2 = right click (ignore)
+      const MOUSE_BUTTON_MAP: Record<number, string> = {
+        1: "MiddleMouse",
+        3: "Mouse4",
+        4: "Mouse5",
+      };
+
+      const hotkey = MOUSE_BUTTON_MAP[e.button];
+      if (hotkey) {
+        e.preventDefault();
+        e.stopPropagation();
+        finalizeCapture(hotkey);
+      } else if (e.button === 1) {
+        // Prevent middle-click auto-scroll during capture
+        e.preventDefault();
+      }
+    },
+    [disabled, isCapturing, finalizeCapture]
+  );
+
+  // Prevent context menu during capture mode
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isCapturing) {
+        e.preventDefault();
+      }
+    },
+    [isCapturing]
+  );
+
   useEffect(() => {
     if (autoFocus && containerRef.current) {
       containerRef.current.focus();
@@ -469,6 +506,8 @@ export function HotkeyInput({
         data-capturing={isCapturing || undefined}
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
         onFocus={handleFocus}
         onBlur={handleBlur}
         className={`
@@ -573,6 +612,8 @@ export function HotkeyInput({
       data-capturing={isCapturing || undefined}
       onKeyDown={handleKeyDown}
       onKeyUp={handleKeyUp}
+      onMouseDown={handleMouseDown}
+      onContextMenu={handleContextMenu}
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={`
