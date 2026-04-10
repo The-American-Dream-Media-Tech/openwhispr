@@ -11,7 +11,7 @@ const {
   cleanupFiles,
 } = require("./lib/download-utils");
 
-const WHISPER_CPP_REPO = "OpenWhispr/whisper.cpp";
+const WHISPER_CPP_REPO = "The-American-Dream-Media-Tech/openwhispr";
 
 // Version can be pinned via environment variable for reproducible builds
 const VERSION_OVERRIDE = process.env.WHISPER_CPP_VERSION || null;
@@ -50,7 +50,7 @@ async function getRelease() {
   if (VERSION_OVERRIDE) {
     cachedRelease = await fetchLatestRelease(WHISPER_CPP_REPO, { tagPrefix: VERSION_OVERRIDE });
   } else {
-    cachedRelease = await fetchLatestRelease(WHISPER_CPP_REPO);
+    cachedRelease = await fetchLatestRelease(WHISPER_CPP_REPO, { tagPrefix: "whisper-server-v" });
   }
   return cachedRelease;
 }

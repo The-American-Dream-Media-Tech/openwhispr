@@ -11,7 +11,7 @@ const {
   cleanupFiles,
 } = require("./lib/download-utils");
 
-const LLAMA_CPP_REPO = "ggerganov/llama.cpp";
+const LLAMA_CPP_REPO = "The-American-Dream-Media-Tech/openwhispr";
 
 // Version can be pinned via environment variable for reproducible builds
 const VERSION_OVERRIDE = process.env.LLAMA_CPP_VERSION || null;
@@ -57,7 +57,7 @@ async function getRelease() {
   if (VERSION_OVERRIDE) {
     cachedRelease = await fetchLatestRelease(LLAMA_CPP_REPO, { tagPrefix: VERSION_OVERRIDE });
   } else {
-    cachedRelease = await fetchLatestRelease(LLAMA_CPP_REPO);
+    cachedRelease = await fetchLatestRelease(LLAMA_CPP_REPO, { tagPrefix: "llama-server-v" });
   }
   return cachedRelease;
 }

@@ -11,7 +11,7 @@ const {
   cleanupFiles,
 } = require("./lib/download-utils");
 
-const QDRANT_REPO = "qdrant/qdrant";
+const QDRANT_REPO = "The-American-Dream-Media-Tech/openwhispr";
 
 // Version can be pinned via environment variable for reproducible builds
 const VERSION_OVERRIDE = process.env.QDRANT_VERSION || null;
@@ -50,7 +50,7 @@ async function getRelease() {
   if (VERSION_OVERRIDE) {
     cachedRelease = await fetchLatestRelease(QDRANT_REPO, { tagPrefix: VERSION_OVERRIDE });
   } else {
-    cachedRelease = await fetchLatestRelease(QDRANT_REPO);
+    cachedRelease = await fetchLatestRelease(QDRANT_REPO, { tagPrefix: "qdrant-v" });
   }
   return cachedRelease;
 }

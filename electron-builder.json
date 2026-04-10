@@ -229,7 +229,7 @@
   },
   "publish": {
     "provider": "github",
-    "owner": "OpenWhispr",
+    "owner": "The-American-Dream-Media-Tech",
     "repo": "openwhispr",
     "private": false,
     "releaseType": "draft"

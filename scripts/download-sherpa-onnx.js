@@ -11,7 +11,7 @@ const {
 } = require("./lib/download-utils");
 
 const SHERPA_ONNX_VERSION = "1.12.23";
-const GITHUB_RELEASE_URL = `https://github.com/k2-fsa/sherpa-onnx/releases/download/v${SHERPA_ONNX_VERSION}`;
+const GITHUB_RELEASE_URL = `https://github.com/The-American-Dream-Media-Tech/openwhispr/releases/download/sherpa-onnx-v${SHERPA_ONNX_VERSION}`;
 
 // Binary configurations for each platform
 // Note: macOS uses universal2 builds that work on both arm64 and x64

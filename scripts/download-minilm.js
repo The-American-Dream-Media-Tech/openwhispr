@@ -12,11 +12,11 @@ const MODEL_DIR = forBuild
 const FILES = [
   {
     name: "model.onnx",
-    url: "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx",
+    url: "https://github.com/The-American-Dream-Media-Tech/openwhispr/releases/download/vendor-minilm-v1.0.0/model.onnx",
   },
   {
     name: "tokenizer.json",
-    url: "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer.json",
+    url: "https://github.com/The-American-Dream-Media-Tech/openwhispr/releases/download/vendor-minilm-v1.0.0/tokenizer.json",
   },
 ];
 

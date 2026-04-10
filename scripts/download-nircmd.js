@@ -13,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const { downloadFile, extractZip } = require("./lib/download-utils");
 
-const NIRCMD_URL = "https://www.nirsoft.net/utils/nircmd-x64.zip";
+const NIRCMD_URL = "https://github.com/The-American-Dream-Media-Tech/openwhispr/releases/download/vendor-nircmd-v1.0.0/nircmd-x64.zip";
 const BIN_DIR = path.join(__dirname, "..", "resources", "bin");
 const NIRCMD_PATH = path.join(BIN_DIR, "nircmd.exe");
 
